@@ -4,11 +4,13 @@ using System.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
 {
-    [SerializeField] private NetworkPrefabRef _playerPrefab;
+    [SerializeField] NetworkPrefabRef _playerPrefab;
+
+    public event Action<List<SessionInfo>> OnSessionListUpdate;
+
     Dictionary<PlayerRef, NetworkObject> _spawnedCharacters = new();
     NetworkRunner _runner;
 
@@ -16,17 +18,14 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     {
         if (runner.IsServer)
         {
-            // Create a unique position for the player
             Vector3 spawnPosition = new Vector3(player.RawEncoded % runner.Config.Simulation.DefaultPlayers * 3, 1, 0);
             NetworkObject networkPlayerObject = runner.Spawn(_playerPrefab, spawnPosition, Quaternion.identity, player);
-            // Keep track of the player avatars so we can remove it when they disconnect
             _spawnedCharacters.Add(player, networkPlayerObject);
         }
     }
 
     public void OnPlayerLeft(NetworkRunner runner, PlayerRef player)
     {
-        // Find and remove the players avatar
         if (_spawnedCharacters.TryGetValue(player, out NetworkObject networkObject))
         {
             runner.Despawn(networkObject);
@@ -81,11 +80,7 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     {
     }
 
-    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
-    {
-        Debug.Log($"Session List Updated with {sessionList.Count} session(s)");
-        Debug.Log($"{sessionList[0].Name}");
-    }
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList) => OnSessionListUpdate?.Invoke(sessionList);
 
     public void OnCustomAuthenticationResponse(NetworkRunner runner, Dictionary<string, object> data)
     {
@@ -107,52 +102,48 @@ public class BasicSpawner : MonoBehaviour, INetworkRunnerCallbacks
     {
     }
 
-    public async Task StartGameTest()
+    public async Task StartQuickGame()
     {
         _runner = gameObject.AddComponent<NetworkRunner>();
         _runner.ProvideInput = true;
-        await StartHost(_runner);
+        await StartHost();
     }
 
-    public async Task JoinGameTest()
+    public async Task UpdateLobby()
     {
         _runner = gameObject.AddComponent<NetworkRunner>();
         _runner.ProvideInput = true;
-        await JoinLobby(_runner);
+        await JoinLobbyForUpdate();
     }
 
-    async Task StartHost(NetworkRunner runner)
+    public async Task JoinSession(string sessionName)
     {
-        var result = await runner.StartGame(new StartGameArgs()
+        var result = await _runner.StartGame(new StartGameArgs
         {
-            GameMode = GameMode.Host
-            //CustomLobbyName = "MyCustomLobby"
+            GameMode = GameMode.Client,
+            SessionName = sessionName
+        });
+        
+        if (!result.Ok)
+            Debug.LogError($"Failed to Start: {result.ShutdownReason}");
+    }
+
+    async Task StartHost()
+    {
+        var result = await _runner.StartGame(new StartGameArgs
+        {
+            GameMode = GameMode.AutoHostOrClient
         });
 
-        if (result.Ok)
-        {
-            // all good
-        }
-        else
-        {
+        if (!result.Ok)
             Debug.LogError($"Failed to Start: {result.ShutdownReason}");
-        }
     }
 
-    async Task JoinLobby(NetworkRunner runner)
+    async Task JoinLobbyForUpdate()
     {
-        var result = await runner.JoinSessionLobby(SessionLobby.ClientServer);
+        var result = await _runner.JoinSessionLobby(SessionLobby.ClientServer);
 
-        if (result.Ok)
-        {
-            await runner.StartGame(new StartGameArgs
-            {
-                GameMode = GameMode.Client
-            });
-        }
-        else
-        {
+        if (!result.Ok)
             Debug.LogError($"Failed to Start: {result.ShutdownReason}");
-        }
     }
 }
