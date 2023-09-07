@@ -19,10 +19,10 @@ public class LobbyView : BaseView
         _uiManager = _runnerViewController.GetUIManager();
     }
 
-    void QuickGameClick()
+    async void QuickGameClick()
     {
         _uiManager.OpenPopUp(UIType.Loading);
-        _runnerViewController.StartQuickGame();
+        await _runnerViewController.StartQuickGame();
         _uiManager.ClosePopUp(UIType.Lobby);
         _uiManager.ClosePopUp(UIType.Loading);
     }

@@ -8,7 +8,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] Transform _contant;
 
     Dictionary<UIType, BaseView> _openPopUps = new();
-
+    
     public void OpenPopUp(UIType type)
     {
         var prefab = _uiElementsList.UIElementsList.FirstOrDefault(x => x.Type == type)?.Obj;
@@ -25,6 +25,9 @@ public class UIManager : MonoBehaviour
 
     public void ClosePopUp(UIType type)
     {
+        if (!_openPopUps.ContainsKey(type))
+            return;
+
         var view = _openPopUps[type];
         _openPopUps.Remove(type);
         Destroy(view.gameObject);

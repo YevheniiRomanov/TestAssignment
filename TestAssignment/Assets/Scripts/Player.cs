@@ -1,8 +1,6 @@
 using System.Threading.Tasks;
 using Fusion;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 
 public class Player : NetworkBehaviour
 {
@@ -11,16 +9,18 @@ public class Player : NetworkBehaviour
     public float Damage;
     
     public float NetworkedHealth { get; set; } = 100;
-    public GameObject PopupHp;
-    public GameObject EndGame;
-    public Button GoToLobby;
-
     
     CharacterController _controller;
     FirstPersonCamera _firstPersonCamera;
+    RunnerViewController _runnerViewController;
+    UIManager _uiManager;
 
-    void Awake() =>
+    void Awake()
+    {
         _controller = GetComponent<CharacterController>();
+        _runnerViewController = FindObjectOfType<RunnerViewController>();
+        _uiManager = _runnerViewController.GetUIManager();
+    }
 
     public override void Spawned()
     {
@@ -34,12 +34,14 @@ public class Player : NetworkBehaviour
     [Rpc(RpcSources.All, RpcTargets.StateAuthority)]
     public async void DealDamageRpc(float damage)
     {
+        if (NetworkedHealth < 0) 
+           return;
         NetworkedHealth -= damage;
         if (NetworkedHealth == 0) 
             ShowEndGame();
-        PopupHp.SetActive(true);
+        _uiManager.OpenPopUp(UIType.Damage);
         await Task.Delay(500);
-        PopupHp.SetActive(false);
+        _uiManager.ClosePopUp(UIType.Damage);
     }
 
     public override void FixedUpdateNetwork()
@@ -77,14 +79,7 @@ public class Player : NetworkBehaviour
 
     void ShowEndGame()
     {
-        EndGame.SetActive(true);
-        GoToLobby.onClick.AddListener(GoToLobbyClick);
+        _uiManager.OpenPopUp(UIType.EndGame);
         Runner.Disconnect(Runner.LocalPlayer);
-    }
-
-    void GoToLobbyClick()
-    {
-        EndGame.SetActive(false);
-        SceneManager.LoadScene(0);
     }
 }

@@ -20,7 +20,7 @@ public class RunnerViewController : MonoBehaviour, INetworkRunnerCallbacks
     public List<SessionInfo> GetSessionList() => _sessionsInfo;
     public void ClearSessionList() => _sessionsInfo = null;
 
-    public async void StartQuickGame()
+    public async Task StartQuickGame()
     {
         await _networkRunner.StartGame(new StartGameArgs
         {
@@ -28,11 +28,8 @@ public class RunnerViewController : MonoBehaviour, INetworkRunnerCallbacks
         });
     }
 
-    public async Task<bool> UpdateLobbyList()
-    {
-        var result = await _networkRunner.JoinSessionLobby(SessionLobby.Shared);
-        return result.Ok;
-    }
+    public async Task UpdateLobbyList() => 
+        await _networkRunner.JoinSessionLobby(SessionLobby.Shared);
 
     public async Task<bool> ConnectToSession(string sessionName)
     {
