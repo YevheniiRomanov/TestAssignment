@@ -1,18 +1,35 @@
-using System;
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-public class SessionSelectorView : MonoBehaviour
+public class SessionSelectorView : BaseView
 {
     [SerializeField] Transform _content;
     [SerializeField] SessionSelectorItemView _itemPrefab;
-    event Action<string> _onSessionSelect;
+    
+    RunnerViewController _runnerViewController;
+    UIManager _uiManager;
+    List<SessionInfo> _sessionList;
     List<SessionSelectorItemView> _items = new();
-    public void Init(List<SessionInfo> sessionList, Action<string> onSessionSelect)
+    
+    public override void Init()
     {
-        _onSessionSelect = onSessionSelect;
-        foreach (var sessionInfo in sessionList)
+        _runnerViewController = FindObjectOfType<RunnerViewController>();
+        _uiManager = _runnerViewController.GetUIManager();
+        _sessionList = _runnerViewController.GetSessionList();
+        if (_sessionList == null)
+        {
+            Debug.LogError("List empty!");
+            _uiManager.ClosePopUp(UIType.SessionSelector);
+            _uiManager.OpenPopUp(UIType.Lobby);
+        }
+        else
+            CreateElementsOfList();
+    }
+
+    void CreateElementsOfList()
+    {
+        foreach (var sessionInfo in _sessionList)
         {
             var item = Instantiate(_itemPrefab, _content);
             item.Init(sessionInfo.Name);
@@ -21,10 +38,17 @@ public class SessionSelectorView : MonoBehaviour
         }
     }
 
-    void OnJoinClick(string nameSession)
+    async void OnJoinClick(string nameSession)
     {
-        _onSessionSelect?.Invoke(nameSession);
+        _uiManager.OpenPopUp(UIType.Loading);
+        var success= await _runnerViewController.ConnectToSession(nameSession);
+        
+        if (success) 
+            _uiManager.ClosePopUp(UIType.SessionSelector);
+        else
+            _uiManager.OpenPopUp(UIType.Lobby);
         Dismiss();
+        _uiManager.ClosePopUp(UIType.Loading);
     }
 
     void Dismiss()
@@ -35,5 +59,6 @@ public class SessionSelectorView : MonoBehaviour
             item.OnJoinClick -= OnJoinClick;
             Destroy(item.gameObject);
         }
+        _runnerViewController.ClearSessionList();
     }
 }

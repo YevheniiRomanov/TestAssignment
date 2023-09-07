@@ -6,20 +6,18 @@ using UnityEngine.UI;
 
 public class Player : NetworkBehaviour
 {
-    private CharacterController _controller;
-
     public Camera Camera;
     public float PlayerSpeed = 2f;
     public float Damage;
     
-    //[Networked(OnChanged = nameof(NetworkedHealthChanged))]
     public float NetworkedHealth { get; set; } = 100;
     public GameObject PopupHp;
     public GameObject EndGame;
     public Button GoToLobby;
 
     
-    FirstPersonCamera FirstPersonCamera;
+    CharacterController _controller;
+    FirstPersonCamera _firstPersonCamera;
 
     void Awake() =>
         _controller = GetComponent<CharacterController>();
@@ -89,9 +87,4 @@ public class Player : NetworkBehaviour
         EndGame.SetActive(false);
         SceneManager.LoadScene(0);
     }
-
-    // static void NetworkedHealthChanged(Changed<Health> changed)
-    // {
-    //     //Debug.Log($"Health changed to: {changed.Behaviour.NetworkedHealth}");
-    // }
 }

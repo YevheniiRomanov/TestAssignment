@@ -11,7 +11,8 @@ using UnityEngine;
         [System.Serializable]
    
         [IncludeInSettings(true)]
-        public class UIElement{
+        public class UIElement
+        {
             [SerializeField]
             public UIType Type;
        
@@ -23,6 +24,7 @@ using UnityEngine;
 
 public enum UIType
 {
+    Lobby,
     SessionSelector,
     Loading,
     Damage,

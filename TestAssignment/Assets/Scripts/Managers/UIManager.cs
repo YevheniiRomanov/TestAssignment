@@ -7,7 +7,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] UIElements _uiElementsList;
     [SerializeField] Transform _contant;
 
-    Dictionary<UIType, GameObject> _openPopUps = new();
+    Dictionary<UIType, BaseView> _openPopUps = new();
 
     public void OpenPopUp(UIType type)
     {
@@ -17,14 +17,16 @@ public class UIManager : MonoBehaviour
 
         if (_openPopUps.ContainsKey(type))
             ClosePopUp(type);
-        var obj=Instantiate(prefab, _contant);
-        _openPopUps.Add(type, obj);
+        var obj = Instantiate(prefab, _contant);
+        var view = obj.GetComponent<BaseView>();
+        view.Init();
+        _openPopUps.Add(type, view);
     }
 
     public void ClosePopUp(UIType type)
     {
-        var obj = _openPopUps[type];
+        var view = _openPopUps[type];
         _openPopUps.Remove(type);
-        Destroy(obj);
+        Destroy(view.gameObject);
     }
 }

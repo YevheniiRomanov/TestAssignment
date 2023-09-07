@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: UIElements
   m_EditorClassIdentifier: 
   UIElementsList:
-  - Type: 0
-    Obj: {fileID: 6699567843066918384, guid: a6113bcc628a6e44091d204f2e352989, type: 3}
   - Type: 1
+    Obj: {fileID: 6699567843066918384, guid: a6113bcc628a6e44091d204f2e352989, type: 3}
+  - Type: 2
     Obj: {fileID: 6517446711229383858, guid: ad66952d7f5ba774eba45399d9afb07a, type: 3}
+  - Type: 0
+    Obj: {fileID: 3337647326560569629, guid: a56ebf445d270ea4c878982fe0423368, type: 3}
