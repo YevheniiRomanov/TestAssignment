@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Fusion;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,22 +9,48 @@ public class LobbyView : MonoBehaviour
 {
     [SerializeField] Button _quickGameButton;
     [SerializeField] Button _findGameButton;
-    [SerializeField] BasicSpawner _basicSpawner;
+    [SerializeField] NetworkRunner _networkRunner;
     [SerializeField] SessionSelectorView _sessionSelectorView;
-    [SerializeField] GameObject _loadScreen;
+    [SerializeField] UIManager _uiManager;
+
+    event Action<string> OnSelectSession;
     
     void Start()
     {
         _quickGameButton.onClick.AddListener(QuickGameClick);
         _findGameButton.onClick.AddListener(FindGameClick);
-        _basicSpawner.OnSessionListUpdate += OnSessionListUpdate;
     }
 
-    void OnSessionListUpdate(List<SessionInfo> sessionList)
+    async void QuickGameClick()
+    {
+        _uiManager.OpenPopUp(UIType.Loading);
+        await _networkRunner.StartGame(new StartGameArgs
+        {
+            GameMode = GameMode.Shared
+        });
+        gameObject.SetActive(false);
+        _uiManager.ClosePopUp(UIType.Loading);
+    }
+    
+    async void FindGameClick()
+    {
+        _findGameButton.interactable = false;
+        await JoinLobbyForUpdate();
+        gameObject.SetActive(false);
+    }
+
+    void OnDestroy()
+    {
+        _quickGameButton.onClick.RemoveAllListeners();
+        _findGameButton.onClick.RemoveAllListeners();
+    }
+    
+    public void OnSessionListUpdated(NetworkRunner runner, List<SessionInfo> sessionList)
     {
         if (sessionList.Count != 0)
         {
-            _sessionSelectorView.Init(sessionList,_basicSpawner);
+            OnSelectSession += SessionSelect;
+            _sessionSelectorView.Init(sessionList, OnSelectSession);
             _sessionSelectorView.gameObject.SetActive(true);
         }
         else
@@ -32,24 +60,34 @@ public class LobbyView : MonoBehaviour
         }
     }
 
-    async void QuickGameClick()
+    async void SessionSelect(string sessionName)
     {
-        _loadScreen.SetActive(true);
-        await _basicSpawner.StartQuickGame();
-        gameObject.SetActive(false);
-        _loadScreen.SetActive(false);
-    }
-    
-    async void FindGameClick()
-    {
-        await _basicSpawner.UpdateLobby();
-        gameObject.SetActive(false);
+        OnSelectSession -= SessionSelect;
+        _uiManager.OpenPopUp(UIType.Loading);
+
+        var result = await _networkRunner.StartGame(new StartGameArgs
+        {
+            GameMode = GameMode.Shared,
+            SessionName = sessionName
+        });
+
+        if (!result.Ok)
+        {
+            Debug.LogError($"Failed to Start: {result.ShutdownReason}");
+            gameObject.SetActive(true);
+        }
+        _uiManager.ClosePopUp(UIType.Loading);
     }
 
-    void OnDestroy()
+    async Task JoinLobbyForUpdate()
     {
-        _quickGameButton.onClick.RemoveAllListeners();
-        _findGameButton.onClick.RemoveAllListeners();
-        _basicSpawner.OnSessionListUpdate -= OnSessionListUpdate;
+        var result = await _networkRunner.JoinSessionLobby(SessionLobby.Shared);
+        
+        if (!result.Ok)
+        {
+            _findGameButton.interactable = false;
+            Debug.LogError($"Failed to Start: {result.ErrorMessage}");
+        }
     }
+
 }
